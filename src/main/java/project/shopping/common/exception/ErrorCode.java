@@ -8,6 +8,7 @@ public enum ErrorCode {
     FORBIDDEN(HttpStatus.FORBIDDEN, "COMMON_403", "Forbidden"),
     NOT_FOUND(HttpStatus.NOT_FOUND, "COMMON_404", "Not found"),
     CONFLICT(HttpStatus.CONFLICT, "COMMON_409", "Conflict"),
+    TOO_MANY_REQUESTS(HttpStatus.TOO_MANY_REQUESTS, "COMMON_429", "Too many requests"),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "COMMON_500", "Internal server error"),
 
     // Auth/JWT

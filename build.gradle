@@ -41,6 +41,9 @@ dependencies {
 	implementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.4'
 	testImplementation 'org.mybatis.spring.boot:mybatis-spring-boot-starter:3.0.4'
 
+	// Redis (no Spring Data)
+	implementation 'io.lettuce:lettuce-core:6.3.1.RELEASE'
+
 	// JWT (jjwt)
 	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
 	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
