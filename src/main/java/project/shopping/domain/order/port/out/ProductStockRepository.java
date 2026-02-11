@@ -7,4 +7,7 @@ public interface ProductStockRepository {
 
     /** 주문 아이템 단가 산출용(현재 가격 조회) */
     long getCurrentPrice(Long productId);
+
+    /** 주문 취소 시 재고 복구 */
+    void increaseStock(Long productId, int quantity);
 }

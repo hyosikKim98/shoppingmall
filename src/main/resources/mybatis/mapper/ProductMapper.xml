@@ -64,6 +64,12 @@
           AND status = 'ACTIVE'
     </update>
 
+    <update id="increaseStock">
+        UPDATE products
+        SET stock = stock + #{quantity}
+        WHERE id = #{productId}
+    </update>
+
     <select id="getCurrentPrice" parameterType="long" resultType="long">
         SELECT price
         FROM products

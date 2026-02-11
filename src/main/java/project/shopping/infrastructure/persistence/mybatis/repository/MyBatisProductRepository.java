@@ -72,6 +72,11 @@ public class MyBatisProductRepository implements ProductRepository, ProductStock
         return price;
     }
 
+    @Override
+    public void increaseStock(Long productId, int quantity) {
+        productMapper.increaseStock(productId, quantity);
+    }
+
     private String normalizeSort(String sort) {
         if (sort == null || sort.isBlank()) return null;
         String s = sort.toLowerCase(Locale.ROOT).trim();

@@ -9,18 +9,25 @@ import project.shopping.common.exception.ErrorCode;
 import project.shopping.common.security.AuthPrincipal;
 import project.shopping.common.security.JwtTokenProvider;
 import project.shopping.domain.user.dto.LoginRequest;
+import project.shopping.domain.user.dto.RefreshTokenRequest;
 import project.shopping.domain.user.dto.SignupRequest;
 import project.shopping.domain.user.dto.TokenResponse;
 import project.shopping.domain.user.model.Role;
 import project.shopping.domain.user.model.User;
+import project.shopping.domain.user.port.out.RefreshTokenRepository;
+import project.shopping.domain.user.port.out.UserRepository;
 
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.Locale;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class AuthService {
 
     private final UserRepository userRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
 
@@ -34,12 +41,10 @@ public class AuthService {
         String hash = passwordEncoder.encode(req.password());
 
         User saved = userRepository.save(User.createNew(req.email(), hash, role));
-
-        String token = jwtTokenProvider.createAccessToken(new AuthPrincipal(saved.getId(), role.asAuthority()));
-        return TokenResponse.bearer(token);
+        return issueAndStoreTokens(saved);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public TokenResponse login(LoginRequest req) {
         User user = userRepository.findByEmail(req.email())
                 .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED, "Invalid credentials"));
@@ -48,14 +53,35 @@ public class AuthService {
             throw new BusinessException(ErrorCode.UNAUTHORIZED, "Invalid credentials");
         }
 
-        String token = jwtTokenProvider.createAccessToken(new AuthPrincipal(user.getId(), user.getRole().asAuthority()));
-        return TokenResponse.bearer(token);
+        return issueAndStoreTokens(user);
     }
 
-    /** MyBatis 구현은 infrastructure에서 만들 예정. */
-    public interface UserRepository {
-        User save(User user);
-        boolean existsByEmail(String email);
-        java.util.Optional<User> findByEmail(String email);
+    @Transactional
+    public TokenResponse refresh(RefreshTokenRequest req) {
+        Long userId = jwtTokenProvider.parseRefreshToken(req.refreshToken());
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED, "Invalid refresh token"));
+
+        String newRefreshToken = jwtTokenProvider.createRefreshToken(userId);
+        OffsetDateTime newRefreshExp = OffsetDateTime.ofInstant(jwtTokenProvider.getExpiration(newRefreshToken), ZoneOffset.UTC);
+
+        boolean rotated = refreshTokenRepository.rotate(userId, req.refreshToken(), newRefreshToken, newRefreshExp, OffsetDateTime.now(ZoneOffset.UTC));
+        if (!rotated) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED, "Invalid refresh token");
+        }
+
+        String accessToken = jwtTokenProvider.createAccessToken(new AuthPrincipal(user.getId(), user.getRole().asAuthority()));
+        return TokenResponse.bearer(accessToken, newRefreshToken);
     }
+
+    private TokenResponse issueAndStoreTokens(User user) {
+        String accessToken = jwtTokenProvider.createAccessToken(new AuthPrincipal(user.getId(), user.getRole().asAuthority()));
+        String refreshToken = jwtTokenProvider.createRefreshToken(user.getId());
+        OffsetDateTime refreshExp = OffsetDateTime.ofInstant(jwtTokenProvider.getExpiration(refreshToken), ZoneOffset.UTC);
+
+        refreshTokenRepository.saveOrReplace(user.getId(), refreshToken, refreshExp);
+        return TokenResponse.bearer(accessToken, refreshToken);
+    }
+
 }

@@ -13,6 +13,7 @@ import java.util.Optional;
 @Repository
 @Profile("jpa")
 public class JpaProductRepository implements ProductRepository, ProductStockRepository {
+
     @Override
     public Product save(Product product) {
         throw new UnsupportedOperationException("JPA repository not implemented");
@@ -51,5 +52,10 @@ public class JpaProductRepository implements ProductRepository, ProductStockRepo
     @Override
     public long getCurrentPrice(Long productId) {
         throw new UnsupportedOperationException("JPA repository not implemented");
+    }
+
+    @Override
+    public void increaseStock(Long productId, int quantity) {
+
     }
 }

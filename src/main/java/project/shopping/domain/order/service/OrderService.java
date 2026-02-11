@@ -10,9 +10,10 @@ import project.shopping.domain.order.dto.OrderDetailResponse;
 import project.shopping.domain.order.dto.OrderResponse;
 import project.shopping.domain.order.model.Order;
 import project.shopping.domain.order.model.OrderItem;
+import project.shopping.domain.order.model.OrderStatus;
+import project.shopping.domain.order.port.out.ProductLockRepository;
 import project.shopping.domain.order.port.out.OrderRepository;
 import project.shopping.domain.order.port.out.ProductStockRepository;
-import project.shopping.infrastructure.persistence.redis.RedisLockException;
 
 import java.util.List;
 
@@ -22,6 +23,7 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final ProductStockRepository productStockRepository;
+    private final ProductLockRepository productLockRepository;
 
     @Transactional
     public OrderResponse create(Long customerId, OrderCreateRequest req) {
@@ -29,11 +31,16 @@ public class OrderService {
         Order order = Order.createNew(customerId);
 
         for (var itemReq : req.items()) {
+            String token = productLockRepository.tryLock(itemReq.productId());
+            if (token == null) {
+                throw new BusinessException(ErrorCode.TOO_MANY_REQUESTS, "Stock is busy, retry: productId=" + itemReq.productId());
+            }
+
             boolean ok;
             try {
                 ok = productStockRepository.decreaseStockIfEnough(itemReq.productId(), itemReq.quantity());
-            } catch (RedisLockException e) {
-                throw new BusinessException(ErrorCode.TOO_MANY_REQUESTS, "Stock is busy, retry: productId=" + itemReq.productId());
+            } finally {
+                productLockRepository.unlock(itemReq.productId(), token);
             }
             if (!ok) throw new BusinessException(ErrorCode.OUT_OF_STOCK, "Out of stock: productId=" + itemReq.productId());
 
@@ -66,8 +73,10 @@ public class OrderService {
         Order o = orderRepository.findByIdAndCustomerId(orderId, customerId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "Order not found"));
 
+        if (o.getStatus() == OrderStatus.CANCELED) return;
+
         o.cancel();
         orderRepository.updateStatus(orderId, o.getStatus().name());
-        // (선택) 취소 시 재고 복구까지 하려면 ProductStockRepository.increaseStock(...) 추가
+        o.getItems().forEach(i -> productStockRepository.increaseStock(i.getProductId(), i.getQuantity()));
     }
 }
