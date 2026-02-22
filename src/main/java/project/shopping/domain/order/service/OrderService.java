@@ -1,5 +1,8 @@
 package project.shopping.domain.order.service;
 
+import io.micrometer.core.annotation.Counted;
+import io.micrometer.core.annotation.Timed;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,15 +19,22 @@ import project.shopping.domain.order.port.out.OrderRepository;
 import project.shopping.domain.order.port.out.ProductStockRepository;
 
 import java.util.List;
+import java.util.Random;
+import java.util.concurrent.atomic.AtomicInteger;
 
+@Timed("my.order")
 @Service
 @RequiredArgsConstructor
 public class OrderService {
+
+    @Getter
+    private AtomicInteger stock = new AtomicInteger(100);
 
     private final OrderRepository orderRepository;
     private final ProductStockRepository productStockRepository;
     private final ProductLockRepository productLockRepository;
 
+//    @Counted("my.order")
     @Transactional
     public OrderResponse create(Long customerId, OrderCreateRequest req) {
         // 1) 재고 차감(조건부 update) + 단가 조회
@@ -53,6 +63,9 @@ public class OrderService {
         order.getItems().forEach(i -> i.setOrderId(saved.getId()));
         orderRepository.saveItems(saved.getId(), order.getItems());
 
+        stock.decrementAndGet();
+        sleep(500);
+
         return OrderResponse.from(saved);
     }
 
@@ -68,6 +81,7 @@ public class OrderService {
         return OrderDetailResponse.from(o);
     }
 
+//    @Counted("my.order")
     @Transactional
     public void cancel(Long customerId, Long orderId) {
         Order o = orderRepository.findByIdAndCustomerId(orderId, customerId)
@@ -78,5 +92,16 @@ public class OrderService {
         o.cancel();
         orderRepository.updateStatus(orderId, o.getStatus().name());
         o.getItems().forEach(i -> productStockRepository.increaseStock(i.getProductId(), i.getQuantity()));
+
+        stock.incrementAndGet();
+        sleep(200);
+    }
+
+    private static void sleep(int l) {
+        try{
+            Thread.sleep(l + new Random().nextInt(200));
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

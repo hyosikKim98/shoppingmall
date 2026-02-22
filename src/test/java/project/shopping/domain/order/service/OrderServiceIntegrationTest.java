@@ -5,8 +5,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
 import org.mybatis.spring.boot.test.autoconfigure.MybatisTest;
 import project.shopping.TestLockRepositoryConfig;
+import project.shopping.common.exception.BusinessException;
 import project.shopping.domain.order.dto.OrderCreateRequest;
 import project.shopping.domain.order.dto.OrderItemRequest;
+import project.shopping.domain.order.dto.OrderResponse;
 import project.shopping.domain.order.model.Order;
 import project.shopping.domain.order.model.OrderItem;
 import project.shopping.domain.product.model.Product;
@@ -19,6 +21,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @MybatisTest
 @Import({OrderService.class, MyBatisOrderRepository.class, MyBatisProductRepository.class, TestLockRepositoryConfig.class})
@@ -45,7 +48,7 @@ class OrderServiceIntegrationTest {
                 new OrderItemRequest(p2.getId(), 1)
         ));
 
-        var res = orderService.create(99L, req);
+        OrderResponse res = orderService.create(99L, req);
 
         Optional<Order> found = orderMapper.findById(res.id());
         assertThat(found).isPresent();
@@ -61,5 +64,12 @@ class OrderServiceIntegrationTest {
 
         assertThat(productMapper.findById(p1.getId()).orElseThrow().getStock()).isEqualTo(5);
         assertThat(productMapper.findById(p2.getId()).orElseThrow().getStock()).isEqualTo(2);
+
+        OrderCreateRequest fail = new OrderCreateRequest(List.of(
+                new OrderItemRequest(p1.getId(), 6),
+                new OrderItemRequest(p2.getId(), 1)
+        ));
+
+        assertThatThrownBy(() -> orderService.create(99L, fail), "", BusinessException.class);
     }
 }

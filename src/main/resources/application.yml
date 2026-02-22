@@ -1,0 +1,54 @@
+
+spring:
+  application:
+    name: shopping
+  profiles:
+    active: local
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/shop
+    # url: jdbc:postgresql://localhost:5432/shopping?currentSchema=public
+    username: shop
+    password: shop
+    driver-class-name: org.postgresql.Driver
+
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
+  mapper-locations: classpath:/mybatis/**/*.xml
+  type-aliases-package: project.shopping
+
+redis:
+  host: localhost
+  port: 6379
+  lock:
+    ttl:
+      ms: 3000
+    retry:
+      max: 5
+      base-ms: 50
+      max-backoff-ms: 400
+
+jwt:
+  secret: CHANGE_ME_TO_LONG_RANDOM_SECRET_CHANGE_ME
+  access:
+    expiration: 3600000
+  refresh:
+    expiration: 86400000
+  issuer: shop-server
+
+server:
+  tomcat:
+    mbeanregistry:
+      enabled: true
+
+management:
+  endpoint:
+#    shutdown:
+#      enabled: true
+    health:
+      show-details: always
+  endpoints:
+    web:
+      exposure:
+        include: "*"

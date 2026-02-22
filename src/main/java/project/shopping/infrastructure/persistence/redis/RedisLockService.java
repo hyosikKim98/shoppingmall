@@ -48,10 +48,10 @@ public class RedisLockService implements ProductLockRepository {
 
     public RedisLockService(
             StringRedisTemplate redis,
-            @Value("${redis.lock.ttl.ms:3000}") long lockTtlMs,
-            @Value("${redis.lock.retry.max:3}") int lockMaxAttempts,
-            @Value("${redis.lock.retry.base.ms:50}") long lockBaseBackoffMs,
-            @Value("${redis.lock.retry.max.backoff.ms:300}") long lockMaxBackoffMs
+            @Value("${redis.lock.ttl.ms}") long lockTtlMs,
+            @Value("${redis.lock.retry.max}") int lockMaxAttempts,
+            @Value("${redis.lock.retry.base-ms}") long lockBaseBackoffMs,
+            @Value("${redis.lock.retry.max-backoff-ms}") long lockMaxBackoffMs
     ) {
         this.redis = redis;
         this.lockTtlMs = lockTtlMs;

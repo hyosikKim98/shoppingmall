@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shopping API Test UI</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; max-width: 1100px; }
+    h2 { margin-top: 28px; }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    input, textarea, button, select { padding: 8px; font-size: 14px; }
+    textarea { width: 100%; min-height: 100px; }
+    pre { background: #111; color: #ddd; padding: 12px; border-radius: 6px; overflow: auto; }
+    .card { border: 1px solid #ddd; border-radius: 8px; padding: 12px; margin-bottom: 14px; }
+    .small { color: #666; font-size: 12px; }
+    .token { font-size: 12px; word-break: break-all; }
+  </style>
+</head>
+<body>
+  <h1>Shopping API Test UI</h1>
+  <p class="small">Base URL: <code id="baseUrlLabel"></code></p>
+
+  <div class="card">
+    <h2>공통 설정</h2>
+    <div class="row">
+      <input id="baseUrl" value="http://localhost:8080" style="width:320px" />
+      <button onclick="applyBaseUrl()">Base URL 적용</button>
+    </div>
+    <div class="row">
+      <button onclick="logout()">토큰 초기화</button>
+      <button onclick="refreshTokenApi()">토큰 재발급</button>
+    </div>
+    <div class="small">Access Token</div>
+    <div class="token" id="accessTokenView">(none)</div>
+    <div class="small">Refresh Token</div>
+    <div class="token" id="refreshTokenView">(none)</div>
+  </div>
+
+  <div class="card">
+    <h2>인증</h2>
+    <div class="row">
+      <input id="signupEmail" placeholder="email" value="user@example.com" />
+      <input id="signupPassword" placeholder="password" value="1234" />
+      <select id="signupRole">
+        <option value="CUSTOMER">CUSTOMER</option>
+        <option value="SELLER">SELLER</option>
+      </select>
+      <button onclick="signup()">회원가입</button>
+    </div>
+    <div class="row">
+      <input id="loginEmail" placeholder="email" value="user@example.com" />
+      <input id="loginPassword" placeholder="password" value="1234" />
+      <button onclick="login()">로그인</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>상품 조회</h2>
+    <div class="row">
+      <input id="keyword" placeholder="keyword" />
+      <input id="minPrice" placeholder="minPrice" type="number" />
+      <input id="maxPrice" placeholder="maxPrice" type="number" />
+      <input id="sort" placeholder="sort" value="createdAt,desc" />
+      <input id="page" placeholder="page" type="number" value="0" />
+      <input id="size" placeholder="size" type="number" value="20" />
+      <button onclick="searchProducts()">목록 조회</button>
+    </div>
+    <div class="row">
+      <input id="getProductId" placeholder="productId" type="number" />
+      <button onclick="getProduct()">단건 조회</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>판매자 상품 관리 (SELLER 토큰 필요)</h2>
+    <div class="row">
+      <input id="createName" placeholder="name" value="Demo Product" />
+      <input id="createPrice" placeholder="price" type="number" value="10000" />
+      <input id="createStock" placeholder="stock" type="number" value="50" />
+      <button onclick="createProduct()">상품 생성</button>
+    </div>
+    <div class="row">
+      <input id="updateProductId" placeholder="productId" type="number" />
+      <input id="updateName" placeholder="name(optional)" />
+      <input id="updatePrice" placeholder="price(optional)" type="number" />
+      <input id="updateStock" placeholder="stock(optional)" type="number" />
+      <select id="updateStatus">
+        <option value="">(status 선택안함)</option>
+        <option value="ACTIVE">ACTIVE</option>
+        <option value="INACTIVE">INACTIVE</option>
+      </select>
+      <button onclick="updateProduct()">상품 수정</button>
+    </div>
+    <div class="row">
+      <input id="deleteProductId" placeholder="productId" type="number" />
+      <button onclick="deleteProduct()">상품 삭제</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>주문</h2>
+    <div class="row">
+      <textarea id="orderItems" placeholder='[{"productId":1,"quantity":1}]'>[{"productId":1,"quantity":1}]</textarea>
+    </div>
+    <div class="row">
+      <button onclick="createOrder()">주문 생성</button>
+      <button onclick="myOrders()">내 주문 목록</button>
+    </div>
+    <div class="row">
+      <input id="orderId" placeholder="orderId" type="number" />
+      <button onclick="myOrder()">주문 상세</button>
+      <button onclick="cancelOrder()">주문 취소</button>
+    </div>
+  </div>
+
+  <h2>응답</h2>
+  <pre id="result">Ready.</pre>
+
+  <script>
+    let BASE_URL = "http://localhost:8080";
+    let accessToken = "";
+    let refreshToken = "";
+
+    const resultEl = document.getElementById("result");
+    const baseUrlLabel = document.getElementById("baseUrlLabel");
+    const accessTokenView = document.getElementById("accessTokenView");
+    const refreshTokenView = document.getElementById("refreshTokenView");
+
+    function renderState() {
+      baseUrlLabel.textContent = BASE_URL;
+      accessTokenView.textContent = accessToken || "(none)";
+      refreshTokenView.textContent = refreshToken || "(none)";
+    }
+
+    function applyBaseUrl() {
+      BASE_URL = document.getElementById("baseUrl").value.trim();
+      renderState();
+      print({ msg: "Base URL updated", BASE_URL });
+    }
+
+    function logout() {
+      accessToken = "";
+      refreshToken = "";
+      renderState();
+      print({ msg: "Tokens cleared" });
+    }
+
+    async function api(path, method = "GET", body = null, auth = false) {
+      const headers = { "Content-Type": "application/json" };
+      if (auth && accessToken) headers["Authorization"] = `Bearer ${accessToken}`;
+
+      const res = await fetch(`${BASE_URL}${path}`, {
+        method,
+        headers,
+        body: body ? JSON.stringify(body) : null
+      });
+
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch { data = text; }
+
+      if (!res.ok) {
+        print({ status: res.status, data });
+        throw new Error(`HTTP ${res.status}`);
+      }
+
+      print({ status: res.status, data });
+      return data;
+    }
+
+    function print(obj) {
+      resultEl.textContent = JSON.stringify(obj, null, 2);
+    }
+
+    function setTokensFromResponse(data) {
+      const tokenData = data?.data;
+      if (tokenData?.accessToken) accessToken = tokenData.accessToken;
+      if (tokenData?.refreshToken) refreshToken = tokenData.refreshToken;
+      renderState();
+    }
+
+    async function signup() {
+      const body = {
+        email: document.getElementById("signupEmail").value.trim(),
+        password: document.getElementById("signupPassword").value,
+        role: document.getElementById("signupRole").value
+      };
+      const data = await api("/api/auth/signup", "POST", body, false);
+      setTokensFromResponse(data);
+    }
+
+    async function login() {
+      const body = {
+        email: document.getElementById("loginEmail").value.trim(),
+        password: document.getElementById("loginPassword").value
+      };
+      const data = await api("/api/auth/login", "POST", body, false);
+      setTokensFromResponse(data);
+    }
+
+    async function refreshTokenApi() {
+      if (!refreshToken) return print({ error: "refreshToken is empty" });
+      const data = await api("/api/auth/refresh", "POST", { refreshToken }, false);
+      setTokensFromResponse(data);
+    }
+
+    async function searchProducts() {
+      const q = new URLSearchParams();
+      const fields = ["keyword", "minPrice", "maxPrice", "sort", "page", "size"];
+      for (const id of fields) {
+        const v = document.getElementById(id).value.trim();
+        if (v !== "") q.append(id, v);
+      }
+      await api(`/api/products?${q.toString()}`, "GET", null, true);
+    }
+
+    async function getProduct() {
+      const id = document.getElementById("getProductId").value;
+      await api(`/api/products/${id}`, "GET", null, true);
+    }
+
+    async function createProduct() {
+      const body = {
+        name: document.getElementById("createName").value.trim(),
+        price: Number(document.getElementById("createPrice").value),
+        stock: Number(document.getElementById("createStock").value)
+      };
+      await api("/api/seller/products", "POST", body, true);
+    }
+
+    async function updateProduct() {
+      const id = document.getElementById("updateProductId").value;
+      const body = {};
+      const name = document.getElementById("updateName").value.trim();
+      const price = document.getElementById("updatePrice").value;
+      const stock = document.getElementById("updateStock").value;
+      const status = document.getElementById("updateStatus").value;
+      if (name) body.name = name;
+      if (price !== "") body.price = Number(price);
+      if (stock !== "") body.stock = Number(stock);
+      if (status) body.status = status;
+      await api(`/api/seller/products/${id}`, "PATCH", body, true);
+    }
+
+    async function deleteProduct() {
+      const id = document.getElementById("deleteProductId").value;
+      await api(`/api/seller/products/${id}`, "DELETE", null, true);
+    }
+
+    async function createOrder() {
+      const items = JSON.parse(document.getElementById("orderItems").value);
+      await api("/api/orders", "POST", { items }, true);
+    }
+
+    async function myOrders() {
+      await api("/api/orders", "GET", null, true);
+    }
+
+    async function myOrder() {
+      const id = document.getElementById("orderId").value;
+      await api(`/api/orders/${id}`, "GET", null, true);
+    }
+
+    async function cancelOrder() {
+      const id = document.getElementById("orderId").value;
+      await api(`/api/orders/${id}/cancel`, "POST", null, true);
+    }
+
+    renderState();
+  </script>
+</body>
+</html>
