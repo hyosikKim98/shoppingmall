@@ -1,8 +1,6 @@
 package project.shopping.domain.order.service;
 
-import io.micrometer.core.annotation.Counted;
 import io.micrometer.core.annotation.Timed;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,15 +18,11 @@ import project.shopping.domain.order.port.out.ProductStockRepository;
 
 import java.util.List;
 import java.util.Random;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Timed("my.order")
 @Service
 @RequiredArgsConstructor
 public class OrderService {
-
-    @Getter
-    private AtomicInteger stock = new AtomicInteger(100);
 
     private final OrderRepository orderRepository;
     private final ProductStockRepository productStockRepository;
@@ -63,7 +57,6 @@ public class OrderService {
         order.getItems().forEach(i -> i.setOrderId(saved.getId()));
         orderRepository.saveItems(saved.getId(), order.getItems());
 
-        stock.decrementAndGet();
         sleep(500);
 
         return OrderResponse.from(saved);
@@ -93,7 +86,6 @@ public class OrderService {
         orderRepository.updateStatus(orderId, o.getStatus().name());
         o.getItems().forEach(i -> productStockRepository.increaseStock(i.getProductId(), i.getQuantity()));
 
-        stock.incrementAndGet();
         sleep(200);
     }
 

@@ -6,3 +6,4 @@
 - [ERD](./erd.md)
 - [Architecture](./architecture.md)
 - [Troubleshooting](./troubleshooting.md)
+- [Flyway Migration Guide](./flyway.md)

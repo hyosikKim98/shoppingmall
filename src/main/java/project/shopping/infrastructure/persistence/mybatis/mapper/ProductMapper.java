@@ -32,4 +32,10 @@ public interface ProductMapper {
     Long getCurrentPrice(@Param("productId") Long productId);
 
     int increaseStock(@Param("productId") Long productId, @Param("quantity") int quantity);
+
+    long sumActiveStock();
+
+    int countActiveLowStock(@Param("threshold") int threshold);
+
+    int countActiveOutOfStock();
 }

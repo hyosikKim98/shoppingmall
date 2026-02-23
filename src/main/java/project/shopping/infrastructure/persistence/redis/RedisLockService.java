@@ -66,12 +66,17 @@ public class RedisLockService implements ProductLockRepository {
         String token = UUID.randomUUID().toString();
 
         for (int attempt = 1; attempt <= lockMaxAttempts; attempt++) {
-            Boolean result = redis.opsForValue().setIfAbsent(
-                    lockKey,
-                    token,
-                    java.time.Duration.ofMillis(lockTtlMs)
-            );
-            if (Boolean.TRUE.equals(result)) return token;
+            try {
+                Boolean result = redis.opsForValue().setIfAbsent(
+                        lockKey,
+                        token,
+                        java.time.Duration.ofMillis(lockTtlMs)
+                );
+                if (Boolean.TRUE.equals(result)) return token;
+            } catch (RuntimeException e) {
+                log.warn("Redis unavailable while acquiring lock: productId={}", productId, e);
+                return null;
+            }
 
             if (attempt < lockMaxAttempts) {
                 long backoff = Math.min(lockMaxBackoffMs, lockBaseBackoffMs * (1L << (attempt - 1)));
@@ -86,9 +91,14 @@ public class RedisLockService implements ProductLockRepository {
 
     @Override
     public boolean unlock(Long productId, String token) {
-        String lockKey = LOCK_PREFIX + productId;
-        Long result = redis.execute(UNLOCK_SCRIPT_SD, java.util.List.of(lockKey), token);
-        return result != null && result > 0;
+        try {
+            String lockKey = LOCK_PREFIX + productId;
+            Long result = redis.execute(UNLOCK_SCRIPT_SD, java.util.List.of(lockKey), token);
+            return result != null && result > 0;
+        } catch (RuntimeException e) {
+            log.warn("Redis unavailable while releasing lock: productId={}", productId, e);
+            return false;
+        }
     }
 
     private void sleep(long millis) {

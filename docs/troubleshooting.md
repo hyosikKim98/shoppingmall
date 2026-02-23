@@ -19,6 +19,9 @@
 - 결과
 - 동시성 상황에서 중복 차감은 방지되고, 실패 요청은 명시적 429로 관측 가능.
 - 정량 측정은 API 429 비율/평균 재시도 횟수로 추적 권장.
+- 재현 테스트 기준 수치(통합테스트):
+  - `initial=100`, `requests=140`에서 `success=100`, `rejected=40`, `finalStock=0`
+  - 근거 파일: `/Users/hyosik981010/Desktop/study/shopping/src/test/java/project/shopping/domain/order/service/OrderServiceConcurrencyIntegrationTest.java`
 
 ## 2) Refresh 토큰 재발급 실패(401)
 
@@ -41,3 +44,25 @@
 - 결과
 - 토큰 회전 정책과 DB 상태가 일치하면 refresh 성공률이 안정화된다.
 - 측정 포인트: `/api/auth/refresh` 401 비율, 토큰 회전 update hit rate.
+
+## 3) Redis 장애 시 주문 잠금 실패
+
+- 문제(증상)
+- Redis 다운 상황에서 주문 생성 시 Redis 연결 예외가 발생한다.
+
+- 원인(근거)
+- 주문 생성은 상품별 Redis 락을 선행으로 시도한다.
+- Redis 미가용 시 연결 예외가 발생할 수 있다.
+- 근거 파일:
+- `/Users/hyosik981010/Desktop/study/shopping/src/main/java/project/shopping/infrastructure/persistence/redis/RedisLockService.java`
+- `/Users/hyosik981010/Desktop/study/shopping/src/main/java/project/shopping/domain/order/service/OrderService.java`
+
+- 해결(변경)
+- 락 획득/해제 시 Redis 예외를 캐치하고 경고 로그 후 실패(null/false)로 처리하도록 변경.
+- 테스트로 Redis down과 복구 경로를 분리 검증.
+- 근거 파일:
+- `/Users/hyosik981010/Desktop/study/shopping/src/test/java/project/shopping/infrastructure/persistence/redis/RedisLockServiceFailureRecoveryTest.java`
+
+- 결과
+- Redis 다운 시 애플리케이션이 즉시 비정상 종료되지 않고 락 획득 실패 흐름으로 제어된다.
+- Docker 가능한 환경에서는 Redis 복구 후 락 획득/해제가 정상 동작한다.

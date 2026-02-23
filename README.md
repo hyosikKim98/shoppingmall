@@ -30,7 +30,7 @@ JWT 인증, 상품 관리, 주문/취소를 제공하는 Spring Boot 쇼핑몰 �
 
 ### 2) 설정
 
-`src/main/resources/application.properties` 기준:
+`src/main/resources/application.yml` 기준:
 
 - `spring.datasource.*`
 - `redis.host`, `redis.port`
@@ -66,3 +66,4 @@ src/main/java/project/shopping
 - ERD: [docs/erd.md](docs/erd.md)
 - Architecture: [docs/architecture.md](docs/architecture.md)
 - Troubleshooting: [docs/troubleshooting.md](docs/troubleshooting.md)
+- Flyway Migration: [docs/flyway.md](docs/flyway.md)

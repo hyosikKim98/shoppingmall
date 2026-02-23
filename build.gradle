@@ -58,6 +58,10 @@ dependencies {
 	// Redis (Spring Data)
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
+	// DB migration
+	implementation 'org.flywaydb:flyway-core'
+	implementation "org.flywaydb:flyway-database-postgresql"
+
 	// JWT (jjwt)
 	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
 	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'

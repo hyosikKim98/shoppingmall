@@ -3,6 +3,7 @@ package project.shopping.domain.product.model;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.OffsetDateTime;
 
@@ -10,7 +11,9 @@ import java.time.OffsetDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Product {
+    @Setter
     private Long id;
+
     private Long sellerId;
     private String name;
     private long price;
@@ -29,5 +32,4 @@ public class Product {
         if (status != null) this.status = status;
     }
 
-    public void setId(Long id) { this.id = id; }
 }
