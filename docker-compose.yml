@@ -34,6 +34,18 @@ services:
       timeout: 3s
       retries: 5
 
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: shopping-redis-exporter
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - '9121:9121'
+    environment:
+      REDIS_ADDR: redis://redis:6379
+
   prometheus:
     image: prom/prometheus:latest
     container_name: shopping-prometheus

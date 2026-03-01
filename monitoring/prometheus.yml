@@ -34,6 +34,11 @@ scrape_configs:
   #추가
   - job_name: 'spring-boot-app'
     metrics_path: '/actuator/prometheus'
-    scrape_interval: 1m
+    scrape_interval: 15s
     static_configs:
       - targets: ['host.docker.internal:8080']
+
+  - job_name: 'redis-exporter'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['redis-exporter:9121']

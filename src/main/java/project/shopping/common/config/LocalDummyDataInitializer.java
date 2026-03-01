@@ -2,6 +2,7 @@ package project.shopping.common.config;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -14,6 +15,7 @@ import project.shopping.infrastructure.persistence.mybatis.mapper.UserMapper;
 
 @Component
 @Profile("local")
+@ConditionalOnProperty(name = "seed.local-dummy.enabled", havingValue = "true", matchIfMissing = false)
 @RequiredArgsConstructor
 public class LocalDummyDataInitializer implements CommandLineRunner {
 

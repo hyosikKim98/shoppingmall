@@ -57,8 +57,6 @@ public class OrderService {
         order.getItems().forEach(i -> i.setOrderId(saved.getId()));
         orderRepository.saveItems(saved.getId(), order.getItems());
 
-        sleep(500);
-
         return OrderResponse.from(saved);
     }
 
@@ -85,15 +83,5 @@ public class OrderService {
         o.cancel();
         orderRepository.updateStatus(orderId, o.getStatus().name());
         o.getItems().forEach(i -> productStockRepository.increaseStock(i.getProductId(), i.getQuantity()));
-
-        sleep(200);
-    }
-
-    private static void sleep(int l) {
-        try{
-            Thread.sleep(l + new Random().nextInt(200));
-        } catch (InterruptedException e) {
-            throw new RuntimeException(e);
-        }
     }
 }
