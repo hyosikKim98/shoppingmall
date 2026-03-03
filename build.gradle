@@ -2,7 +2,7 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '4.0.2'
 	id 'io.spring.dependency-management' version '1.1.7'
-	id "com.gorylenko.gradle-git-properties" version "2.5.7"	// git.info
+	id "com.gorylenko.gradle-git-properties" version "2.5.7"	// actuator - git.info
 }
 
 group = 'project'
@@ -24,6 +24,11 @@ configurations {
 repositories {
 	mavenCentral()
 }
+
+gitProperties {
+	failOnNoGitDirectory = false
+}
+
 
 dependencies {
 //	implementation 'org.springframework.boot:spring-boot-starter-data-jdbc'

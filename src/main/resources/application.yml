@@ -24,10 +24,12 @@ mybatis:
   type-aliases-package: project.shopping
 
 redis:
+  enabled: true
   host: localhost
   port: 6379
   cache:
     product:
+      enabled: true
       ttl:
         seconds: 60
   lock:

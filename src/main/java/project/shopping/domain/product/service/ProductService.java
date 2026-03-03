@@ -2,6 +2,7 @@ package project.shopping.domain.product.service;
 
 import tools.jackson.core.JacksonException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -28,8 +29,11 @@ public class ProductService {
     private static final String PRODUCT_CACHE_KEY_PREFIX = "product:";
 
     private final ProductRepository productRepository;
-    private final StringRedisTemplate redisTemplate;
-    private final JsonMapper jsonMapper;
+    private final ObjectProvider<StringRedisTemplate> redisTemplateProvider;
+    private final ObjectProvider<JsonMapper> jsonMapperProvider;
+
+    @Value("${redis.cache.product.enabled:true}")
+    private boolean productCacheEnabled;
 
     @Value("${redis.cache.product.ttl.seconds:60}")
     private long productCacheTtlSeconds;
@@ -43,15 +47,19 @@ public class ProductService {
     @Transactional(readOnly = true)
     public ProductResponse get(Long productId) {
         String cacheKey = productCacheKey(productId);
-        try {
-            String cached = redisTemplate.opsForValue().get(cacheKey);
-            if (cached != null) {
-                return jsonMapper.readValue(cached, ProductResponse.class);
+        if (cacheAvailable()) {
+            StringRedisTemplate redis = redisTemplateProvider.getIfAvailable();
+            JsonMapper mapper = jsonMapperProvider.getIfAvailable();
+            try {
+                String cached = redis.opsForValue().get(cacheKey);
+                if (cached != null) {
+                    return mapper.readValue(cached, ProductResponse.class);
+                }
+            } catch (JacksonException e) {
+                redis.delete(cacheKey);
+            } catch (RuntimeException ignored) {
+                // Redis 미가용 시 DB fallback
             }
-        } catch (JacksonException e) {
-            redisTemplate.delete(cacheKey);
-        } catch (RuntimeException ignored) {
-            // Redis 미가용 시 DB fallback
         }
 
 
@@ -59,15 +67,19 @@ public class ProductService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "Product not found"));
         ProductResponse response = ProductResponse.from(p);
 
-        try {
-            redisTemplate.opsForValue().set(
-                    cacheKey,
-                    jsonMapper.writeValueAsString(response),
-                    Duration.ofSeconds(productCacheTtlSeconds)
-            );
-        } catch (JacksonException e) {
-        } catch (RuntimeException ignored) {
-            // Redis 미가용 시 캐시 저장 skip
+        if (cacheAvailable()) {
+            StringRedisTemplate redis = redisTemplateProvider.getIfAvailable();
+            JsonMapper mapper = jsonMapperProvider.getIfAvailable();
+            try {
+                redis.opsForValue().set(
+                        cacheKey,
+                        mapper.writeValueAsString(response),
+                        Duration.ofSeconds(productCacheTtlSeconds)
+                );
+            } catch (JacksonException ignored) {
+            } catch (RuntimeException ignored) {
+                // Redis 미가용 시 캐시 저장 skip
+            }
         }
 
 
@@ -114,11 +126,18 @@ public class ProductService {
     }
 
     private void evictProductCache(Long productId) {
+        if (!cacheAvailable()) return;
         try {
-            redisTemplate.delete(productCacheKey(productId));
+            redisTemplateProvider.getIfAvailable().delete(productCacheKey(productId));
         } catch (RuntimeException ignored) {
             // Redis 미가용 시 캐시 삭제 skip
         }
+    }
+
+    private boolean cacheAvailable() {
+        return productCacheEnabled
+                && redisTemplateProvider.getIfAvailable() != null
+                && jsonMapperProvider.getIfAvailable() != null;
     }
 
 

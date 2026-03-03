@@ -24,7 +24,7 @@ public class ProductBulkDataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        int total = Integer.parseInt(System.getProperty("seed.products.count", "1000000"));
+        int total = Integer.parseInt(System.getProperty("seed.products.count", "100000"));
         int batchSize = 5000;
 
         Long existing = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM products", Long.class);
