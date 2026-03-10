@@ -25,6 +25,7 @@ flowchart LR
     O --> S3
     S1 --> M1
     S1 --> J
+    S2 -->|cache read/write| R
     S2 --> M2
     S3 --> RL
     RL --> R
@@ -40,6 +41,8 @@ flowchart LR
 - 로그인/회원가입 요청은 `AuthController`로 진입한다.
 - `AuthService`는 사용자 검증 후 access/refresh JWT를 발급한다.
 - refresh 토큰은 `MyBatisUserRepository`를 통해 `refresh_tokens`에 저장/회전된다.
+- 상품 목록/상세 조회 요청은 `ProductController`에서 `ProductService`로 전달된다.
+- `ProductService`는 Redis 캐시를 먼저 조회하고, miss 시 DB 조회 후 캐시를 갱신한다.
 - 주문 생성 요청은 `OrderController`에서 `OrderService.create`로 전달된다.
 - `OrderService`는 상품별로 `RedisLockService`에서 락을 획득한다.
 - 락 획득 후 `ProductRepository.decreaseStockIfEnough`로 조건부 차감한다.
@@ -49,6 +52,7 @@ flowchart LR
 ## 설계 포인트
 
 - 인증 경계: `/api/auth/**`는 공개, `/api/seller/**`는 SELLER Role 강제.
+- 조회 캐시: `ProductService.get/search`는 Redis를 사용해 상품 상세/목록 조회 결과를 캐시한다.
 - 트랜잭션 경계: 주문 생성/취소는 서비스 단위 트랜잭션으로 처리.
 - 동시성 제어: 주문 생성 시 상품 단위 Redis 락 + DB 조건부 재고 차감 조합.
 - 토큰 보안: JWT에 토큰 타입(access/refresh)을 분리해 검증.
