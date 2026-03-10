@@ -16,7 +16,6 @@
 
 - 기본 로그인 계정은 로컬 더미 시더 기준 `user@example.com / 1234`
 - 근거 파일:
-  - `/Users/hyosik981010/Desktop/study/shopping/src/main/java/project/shopping/common/config/LocalDummyDataInitializer.java`
   - `/Users/hyosik981010/Desktop/study/shopping/src/main/java/project/shopping/common/config/ProductBulkDataInitializer.java`
 - 주문 시나리오의 `productId=1` 은 예시값이다. 실제 테스트 전 주문 가능한 상품 ID를 확인해 넣어야 한다.
 - 캐시 시나리오는 페이지 기반 CSV를 사용한다.
