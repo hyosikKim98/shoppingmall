@@ -11,10 +11,10 @@ import project.shopping.infrastructure.persistence.mybatis.mapper.ProductMapper;
 @Configuration
 public class AopConfig {
 
-    @Bean
-    public TraceLoggingAspect traceLoggingAspect() {
-        return new TraceLoggingAspect();
-    }
+//    @Bean
+//    public TraceLoggingAspect traceLoggingAspect() {
+//        return new TraceLoggingAspect();
+//    }
 
 //    @Bean
 //    public CountedAspect countedAspect(MeterRegistry meterRegistry) {

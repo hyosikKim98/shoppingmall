@@ -3,10 +3,15 @@ package project.shopping.common.config;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
+import project.shopping.domain.user.model.Role;
+import project.shopping.domain.user.model.User;
+import project.shopping.infrastructure.persistence.mybatis.mapper.UserMapper;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -20,10 +25,16 @@ import java.util.concurrent.ThreadLocalRandom;
 @RequiredArgsConstructor
 public class ProductBulkDataInitializer implements CommandLineRunner {
 
+    private final UserMapper userMapper;
+    private final PasswordEncoder passwordEncoder;
+
     private final JdbcTemplate jdbcTemplate;
 
     @Override
     public void run(String... args) {
+        User seller = ensureSeller();
+        User customer = ensureUser();
+
         int total = Integer.parseInt(System.getProperty("seed.products.count", "100000"));
         int batchSize = 5000;
 
@@ -70,5 +81,25 @@ public class ProductBulkDataInitializer implements CommandLineRunner {
                 }
             });
         }
+    }
+
+    private User ensureSeller() {
+        String sellerEmail = "seller@example.com";
+        return userMapper.findByEmail(sellerEmail).orElseGet(() -> {
+            String hash = passwordEncoder.encode("1234");
+            User newSeller = User.createNew(sellerEmail, hash, Role.SELLER);
+            userMapper.insert(newSeller);
+            return newSeller;
+        });
+    }
+
+    private User ensureUser() {
+        String userEmail = "user@example.com";
+        return userMapper.findByEmail(userEmail).orElseGet(() -> {
+            String hash = passwordEncoder.encode("1234");
+            User newUser = User.createNew(userEmail, hash, Role.CUSTOMER);
+            userMapper.insert(newUser);
+            return newUser;
+        });
     }
 }
