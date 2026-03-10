@@ -68,3 +68,9 @@ src/main/java/project/shopping
 - Troubleshooting: [docs/troubleshooting.md](docs/troubleshooting.md)
 - Flyway Migration: [docs/flyway.md](docs/flyway.md)
 - Performance Test Guide: [docs/performance.md](docs/performance.md)
+
+## 성능 테스트 시나리오
+
+- 시나리오 A: 동일 상품 주문 경쟁에서 Redis 락 경합과 `201/409/429` 결과 비율 관측
+- 시나리오 B: 상품 목록 조회(`/api/products`)에서 `50% hot page + 50% random page` 캐시 비교
+- JMeter 플랜: [loadtest/jmeter/order-contention.jmx](/Users/hyosik981010/Desktop/study/shopping/loadtest/jmeter/order-contention.jmx), [loadtest/jmeter/product-cache.jmx](/Users/hyosik981010/Desktop/study/shopping/loadtest/jmeter/product-cache.jmx)
