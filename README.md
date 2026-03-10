@@ -67,3 +67,4 @@ src/main/java/project/shopping
 - Architecture: [docs/architecture.md](docs/architecture.md)
 - Troubleshooting: [docs/troubleshooting.md](docs/troubleshooting.md)
 - Flyway Migration: [docs/flyway.md](docs/flyway.md)
+- Performance Test Guide: [docs/performance.md](docs/performance.md)
