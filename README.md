@@ -174,7 +174,9 @@ WHERE id = #{productId}
 | HTTP 429 | 271 | 0 | DB-only에서는 lock-busy 미발생 |
 | Redis commands/sec 평균 | 5,605.03 | 0.56 | Redis 락 비용 제거 |
 
-![주문 경합 처리량 비교](img/order-contention-throughput-response-gauge-v2.png)
+<p align="center">
+  <img src="./img/order-contention-throughput-response-gauge-v2.png" alt="주문 경합 처리량 비교 차트" width="900">
+</p>
 
 ### 동시성 통합 테스트
 
@@ -195,7 +197,9 @@ WHERE id = #{productId}
 | Hot page list | 11,948 | 200 | 13.00ms | 27ms | 39ms |
 | Random page list | 9,977 | 200 | 13.19ms | 28ms | 40ms |
 
-![상품 캐시 검증 차트](img/cache-validation-charts.png)
+<p align="center">
+  <img src="./img/cache-validation-charts.png" alt="상품 캐시 검증 차트" width="720">
+</p>
 
 ## 6. 트러블슈팅
 
